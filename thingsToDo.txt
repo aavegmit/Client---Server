@@ -1,0 +1,2 @@
+./server 80 as a bad command
+./client adr www.cs.usc.xxx www.cs.usc.edu as a bad command (bad host to connect to)

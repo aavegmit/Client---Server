@@ -7,10 +7,57 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+void usage(){
+	printf("Usage:\t ./server [-t seconds] [-m] port\n") ;
+	exit(0) ;
+}
+
 int main(int argc, char *argv[])
 {
 	struct sockaddr_in serv_addr;
-	int nSocket=0 ;
+	int nSocket=0, portGiven = 0 ;
+
+	// Parsing the command line
+	if (argc < 2){
+		usage() ;
+	}
+	else {
+		argv++ ;
+
+		for (int i = 0 ; i < argc-1 ; i++, argv++) {
+			if (*argv[0] == '-') {
+				if (strcmp(*argv, "-m") == 0) {
+					/* set a global flag */
+					printf("option m selected\n") ;
+				} else if (strcmp(*argv, "-t") == 0) {
+					argc--, argv++; /* move past "-t"*/
+					if (argc <= 0) {
+						usage() ;
+					}
+					/* read offset from *argv */
+					if (!atoi(*argv)){
+						printf("Bad Timeout argument\n") ;
+						exit(0) ;
+					}
+					printf("Seconds: %d\n", atoi(*argv)) ;
+				}
+				else
+					usage() ;
+			} 
+			else {
+				if (portGiven)
+					usage() ;
+				printf("Port: %s\n", *argv) ;
+				portGiven = 1 ;
+			}
+		}
+	}
+
+	if (!portGiven)
+		usage() ;
+
+
+	printf("Command line parsing done\n") ;
 
 	//creating a socket
 	nSocket = socket(AF_INET, SOCK_STREAM, 0) ;
