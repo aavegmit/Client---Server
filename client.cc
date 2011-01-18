@@ -16,6 +16,8 @@ void usage(){
 int main(int argc, char *argv[]){
 	struct sockaddr_in serv_addr ;
 	int nSocket = 0, status, choice = 0, fixedArg = 0 ;
+	char *port ;
+	char *hostname ;
 
 	// Parse the command line 
 	if (argc < 3){
@@ -34,6 +36,8 @@ int main(int argc, char *argv[]){
 		} else {
 			usage() ;
 		}
+
+		argv++ ;
 
 		for (int i = 0 ; i < argc-2 ; i++, argv++) {
 			if (*argv[0] == '-') {
@@ -71,6 +75,13 @@ int main(int argc, char *argv[]){
 			else {
 				if (fixedArg == 0){
 					++fixedArg ;
+					hostname = strtok(*argv, ":") ;
+					port = strtok(NULL, ":") ;
+					printf("%s %s\n", hostname, port) ;
+					if (!atoi(port)){
+						printf("Bad port number\n");
+						exit(0) ;
+					}
 				}
 				else if (fixedArg == 1){
 					++fixedArg ;
@@ -95,8 +106,8 @@ int main(int argc, char *argv[]){
 
 	// Filling up the structure with specifics
 	serv_addr.sin_family = AF_INET ;
-	serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1") ;
-	serv_addr.sin_port = htons(12345) ;
+	serv_addr.sin_addr.s_addr = inet_addr(hostname) ;
+	serv_addr.sin_port = htons(atoi(port)) ;
 
 	// Connect to the server
 	status = connect(nSocket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) ;

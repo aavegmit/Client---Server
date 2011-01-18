@@ -15,7 +15,7 @@ void usage(){
 int main(int argc, char *argv[])
 {
 	struct sockaddr_in serv_addr;
-	int nSocket=0, portGiven = 0 ;
+	int nSocket=0, portGiven = 0 , portNum = 0;
 
 	// Parsing the command line
 	if (argc < 2){
@@ -47,7 +47,12 @@ int main(int argc, char *argv[])
 			else {
 				if (portGiven)
 					usage() ;
+				if (!atoi(*argv)){
+					printf("Bad Port Number\n");
+					exit(0);
+				}
 				printf("Port: %s\n", *argv) ;
+				portNum = atoi(*argv) ;
 				portGiven = 1 ;
 			}
 		}
@@ -68,7 +73,7 @@ int main(int argc, char *argv[])
 	// Filling up the specifics
 	serv_addr.sin_family = AF_INET ;
 	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY) ;
-	serv_addr.sin_port = htons(12345) ;
+	serv_addr.sin_port = htons(portNum) ;
 
 	// Bind the socket 
 	bind(nSocket, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
