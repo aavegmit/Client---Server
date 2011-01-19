@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "server_operations.h"
 
 void usage(){
 	printf("Usage:\t ./server [-t seconds] [-m] port\n") ;
@@ -98,9 +99,9 @@ int main(int argc, char *argv[])
 				/* error */
 			}
 			else if (pid == 0) {
-				// Close the parent socket
 				close(nSocket) ;
 				printf("Connection with client established\n") ;
+				server_processing( newsockfd ) ;
 				exit(0) ;
 			}
 			close(newsockfd) ;

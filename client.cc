@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "client_operations.h"
 
 void usage(){
 	printf("Usage:\t ./client {adr|fsz|get} [-d delay] [-o offset] [-m] hostname:port string\n") ;
@@ -15,9 +16,11 @@ void usage(){
 
 int main(int argc, char *argv[]){
 	struct sockaddr_in serv_addr ;
-	int nSocket = 0, status, choice = 0, fixedArg = 0 ;
+	int nSocket = 0, status, choice = 0, fixedArg = 0, offset = 0; 
+	uint8_t delay=0 ;
+
 	char *port ;
-	char *hostname ;
+	char *hostname, *stringArg ;
 
 	// Parse the command line 
 	if (argc < 3){
@@ -28,10 +31,8 @@ int main(int argc, char *argv[]){
 		if (strcmp(*argv, "adr") == 0) {
 			choice = 1 ;
 		} else if (strcmp(*argv, "fsz") == 0) {
-			printf ("fsz selected\n") ;
 			choice = 2 ;
 		} else if (strcmp(*argv, "get") == 0) {
-			printf ("get selected\n") ;
 			choice = 3 ;
 		} else {
 			usage() ;
@@ -55,7 +56,8 @@ int main(int argc, char *argv[]){
 						printf("Bad delay argument\n") ;
 						exit(0) ;
 					}
-					printf("delay: %d\n", atoi(*argv)) ;
+					delay = atoi(*argv) ;
+					printf("delay: %d\n", delay) ;
 				}
 				else if (strcmp(*argv, "-o") == 0) {
 					argc--, argv++; /* move past "-o"*/
@@ -67,7 +69,8 @@ int main(int argc, char *argv[]){
 						printf("Bad offset argument\n") ;
 						exit(0) ;
 					}
-					printf("offset: %d\n", atoi(*argv)) ;
+					offset = atoi(*argv) ;
+					printf("offset: %d\n", offset) ;
 				}
 				else
 					usage() ;
@@ -85,6 +88,7 @@ int main(int argc, char *argv[]){
 				}
 				else if (fixedArg == 1){
 					++fixedArg ;
+					stringArg = *argv ;
 				}
 				else
 					usage() ;
@@ -117,6 +121,19 @@ int main(int argc, char *argv[]){
 	}
 	else {
 		printf("Client connected\n") ;
+		switch (choice) {
+			case 1:
+				printf("Sending ADDR Request...\n");
+				break ;
+			case 2:
+				printf("Sending FSZ Request...\n");
+				fsz_request(nSocket, stringArg, delay) ;
+				break ;
+			case 3:
+				printf("Sending GET Request...\n");
+				break ;
+
+		}
 	}
 	close(nSocket) ;
 	exit(0) ;
