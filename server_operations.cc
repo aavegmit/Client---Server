@@ -1,5 +1,6 @@
 #include <iostream>
 #include <stdio.h>
+#include <stdlib.h>
 #include "server_operations.h"
 
 
@@ -11,17 +12,25 @@ void handle_fszReq(int nSocket, unsigned char *buffer){
 	struct stat fileStatus ;
 	int ret_code = stat((const char *)buffer, &fileStatus) ;
 
-	char *responseStr = NULL;
+	char *responseStr ;
 	if (ret_code == -1){
 		SendAcrossNetwork(nSocket, 0xfe22, NULL ,0,0) ;
 	}
 	else {
-		sprintf(responseStr, "%d", (int)fileStatus.st_size) ;
-		printf("File size %s, len %d\n", responseStr, (int)strlen(responseStr)) ;
-		SendAcrossNetwork(nSocket, 0xfe21, responseStr, 0,0) ;
-	}
+		// To find the length of size
+		int tempS = fileStatus.st_size ;
+		int count = 0 ;
+		while(tempS != 0){
+			tempS = tempS / 10 ;
+			++count ;
+		}
 
-//	printf("File size %d, return code %d\n", (int)fileStatus.st_size, ret_code) ;
+		responseStr = (char *)malloc(count) ;
+		sprintf(responseStr, "%d", (int)fileStatus.st_size) ;
+		SendAcrossNetwork(nSocket, 0xfe21, responseStr, 0,0) ;
+		printf("File size %s, len %d\n", responseStr, count) ;
+	}
+	free(responseStr) ;
 
 }
 
