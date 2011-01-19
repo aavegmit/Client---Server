@@ -2,6 +2,30 @@
 #include <stdio.h>
 #include "server_operations.h"
 
+
+/* Handle FSZ REQUEST
+ * Use stat() to find the file size
+ * Create a response packet and reply back to the client
+ */
+void handle_fszReq(int nSocket, unsigned char *buffer){
+	struct stat fileStatus ;
+	int ret_code = stat((const char *)buffer, &fileStatus) ;
+
+	char *responseStr = NULL;
+	if (ret_code == -1){
+		SendAcrossNetwork(nSocket, 0xfe22, NULL ,0,0) ;
+	}
+	else {
+		sprintf(responseStr, "%d", (int)fileStatus.st_size) ;
+		printf("File size %s, len %d\n", responseStr, (int)strlen(responseStr)) ;
+		SendAcrossNetwork(nSocket, 0xfe21, responseStr, 0,0) ;
+	}
+
+//	printf("File size %d, return code %d\n", (int)fileStatus.st_size, ret_code) ;
+
+}
+
+
 void server_processing( int nSocket ){
 
 
@@ -47,7 +71,7 @@ void server_processing( int nSocket ){
 				printf("Malloc failed. Might be because of big filename.\n");
 				exit(0) ;
 			}
-			for (int i=0; i < data_length; i++) {
+			for (unsigned int i=0; i < data_length; i++) {
 				return_code=(int)read(nSocket, &buffer[i], 1);
 				if (return_code == -1){
 					printf("Socket Read error...\n") ;
@@ -56,12 +80,8 @@ void server_processing( int nSocket ){
 
 			}
 			printf("Message: %02x %04x %d %04x %s\n", message_type, offset,delay, data_length, buffer) ;
+			handle_fszReq(nSocket, buffer) ;
 			break;
 	}
-	/*
-	 * Create a response and send it back to the client.
-	 * To start, you can just "hardcode" a response in
-	 *     the same way as you did for the client.
-	 */
 
 }

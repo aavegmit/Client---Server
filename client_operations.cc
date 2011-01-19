@@ -4,60 +4,73 @@
 #include "client_operations.h"
 
 void fsz_request(int sockfd, char *fileName, uint8_t delay ){
-	int buf_sz = HEADER_SIZE + strlen(fileName) ;
-
-	unsigned char *buf=(unsigned char *)malloc(buf_sz);
-	memset(buf, 0, buf_sz) ;
-
-	if (buf == NULL) { 
-		printf("Malloc failed. Check your fileName\n") ;
-		exit(0) ;
-	}
-
-	/* Fill out the 11-byte common header */
-
-	/* MessageType is 0xfe20 */
-	buf[0] = 0xfe;
-	buf[1] = 0x20;
-
-	/* Offset is 0 */
-	buf[2] = 0x00;
-	buf[3] = 0x00;
-	buf[4] = 0x00;
-	buf[5] = 0x00;
 
 
-	/* delay */
-	printf("DELAY 8 bit %02x\n", delay) ;
-//	delay = htons(delay) ;
-	memcpy(&buf[6], &delay, 1) ;
-//	buf[6] = 0x00;
+	SendAcrossNetwork(sockfd,0xfe20 , fileName, delay, 0);
 
-	/* DataLength is strlen("Makefile")=8 */
-	uint32_t dlength = strlen(fileName) ;
-	dlength = htonl(dlength) ;
-	memcpy(&buf[7], &dlength, 4) ;
+	response_handler(sockfd) ;
 
-	/* Fill out the data field */
-	strncpy((char *)&buf[HEADER_SIZE], fileName , strlen(fileName));
-
-	for (int i=0; i < buf_sz ; i++) {
-		int return_code=(int)write(sockfd, &buf[i], 1);
-		if (return_code == -1){
-			printf("Socket write error..\n");
-			exit(0);
-		}
-		printf("Writing %02x\n", buf[i]) ;
-
-	}
-	/*
-	 * Now the client should read from the socket to get the reply.
-	 * But for now, we will put the client in an infinite loop.
-	 *     If you want to kill the client, you can press <Cntrl+C>.
-	 */
-	//	for (;;) {
-	//		/* call sleep() so we don't busy-wait */
-	//		sleep(1);
-	//	}
 }
 
+/* 
+ * Receives response from the server 
+ */
+void response_handler(int nSocket ){
+
+	unsigned char header[HEADER_SIZE];
+	unsigned char *buffer ;
+	int return_code = 0 ;
+
+	memset(header, 0, HEADER_SIZE) ;
+
+	for (int i=0; i < HEADER_SIZE; i++) {
+		return_code=(int)read(nSocket, &header[i], 1);
+		if (return_code == -1){
+			printf("Socket Read error...\n") ;
+			exit(0) ;
+		}
+				printf("Reading %02x\n", header[i], return_code) ;
+	}
+
+	uint16_t message_type=0;
+	uint32_t offset=0;
+	uint32_t data_length=0;
+	uint8_t delay=0 ;
+
+	memcpy(&message_type, header, 2);
+	memcpy(&offset,       header+2, 4);
+	memcpy(&delay,       header+6, 1);
+	memcpy(&data_length,  header+7, 4);
+
+	message_type = ntohs(message_type);
+	offset       = ntohl(offset);
+	data_length  = ntohl(data_length);
+
+	printf("In client response handler...\n") ;	
+
+	switch (message_type) {
+		case 0xfe22:
+			printf("No such file found..\n") ;
+			break ;
+		case 0xfe21:
+			/* allocate buffer to read data_length number of bytes */
+			buffer = (unsigned char *)malloc(data_length) ;
+			memset(buffer, 0 ,data_length) ;
+
+			// If malloc fails, the datalength could be very big!!
+			if (buffer == NULL){
+				printf("Malloc failed. Might be because of big filename.\n");
+				exit(0) ;
+			}
+			for (int i=0; i < data_length; i++) {
+				return_code=(int)read(nSocket, &buffer[i], 1);
+				if (return_code == -1){
+					printf("Socket Read error...\n") ;
+					exit(0) ;
+				}
+
+			}
+			printf("Message: %02x %04x %d %04x %s\n", message_type, offset,delay, data_length, buffer) ;
+			break;
+	}
+}

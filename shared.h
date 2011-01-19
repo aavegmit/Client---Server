@@ -7,10 +7,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <sys/stat.h>
-#include <unistd.h>
-#include "shared.h"
 
 #define HEADER_SIZE 11
 
-extern void server_processing(int nSocket) ;
+void SendAcrossNetwork(int sockfd, uint16_t type, char *str, uint8_t delay, uint32_t offset);

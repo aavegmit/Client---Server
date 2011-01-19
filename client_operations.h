@@ -7,7 +7,9 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "shared.h"
 
 #define HEADER_SIZE 11
 
 extern void fsz_request(int sockfd, char *fileName, uint8_t delay) ;
+extern void response_handler(int nSocket) ;
