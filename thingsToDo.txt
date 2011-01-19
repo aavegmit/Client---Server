@@ -2,3 +2,4 @@
 ./client adr www.cs.usc.xxx www.cs.usc.edu as a bad command (bad host to connect to)
 Client stops in between, the server is still writing to the socket
 -wall to be included in all the files
+host does not exists condition

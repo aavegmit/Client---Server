@@ -124,16 +124,19 @@ int main(int argc, char *argv[]){
 		switch (choice) {
 			case 1:
 				printf("Sending ADDR Request...\n");
+				SendAcrossNetwork(nSocket, 0xfe10, stringArg, delay, 0) ;
 				break ;
 			case 2:
 				printf("Sending FSZ Request...\n");
-				fsz_request(nSocket, stringArg, delay) ;
+//				fsz_request(nSocket, stringArg, delay) ;
+				SendAcrossNetwork(nSocket, 0xfe20, stringArg, delay, 0) ;
 				break ;
 			case 3:
 				printf("Sending GET Request...\n");
 				break ;
 
 		}
+		response_handler(nSocket) ;
 	}
 	close(nSocket) ;
 	exit(0) ;

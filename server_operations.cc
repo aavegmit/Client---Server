@@ -34,6 +34,32 @@ void handle_fszReq(int nSocket, unsigned char *buffer){
 
 }
 
+/* Handle ADDR REQUEST
+ * Use stat() to find the IP address of the host
+ * Create a response packet and reply back to the client
+ */
+void handle_addrReq(int nSocket, unsigned char *buffer){
+	printf("In ADDR REQ\n") ;
+	struct hostent *hostIP = gethostbyname((char *)buffer) ;
+	char *hostname = new char[15] ;
+	memset(hostname, 0, 15) ;
+	sprintf(hostname, "%s", inet_ntoa(*(struct in_addr*)(hostIP->h_addr_list[0]))) ;
+	printf("Hostip %s\n", hostname) ;
+
+	if (!strcmp(hostname, "")){
+		SendAcrossNetwork(nSocket,0xfe12, NULL, 0,0) ;
+	}
+	else{
+		SendAcrossNetwork(nSocket,0xfe11, hostname, 0,0) ;
+	}
+
+
+
+	free(hostname) ;
+
+}
+
+
 
 void server_processing( int nSocket ){
 
@@ -50,7 +76,7 @@ void server_processing( int nSocket ){
 			printf("Socket Read error...\n") ;
 			exit(0) ;
 		}
-				printf("Reading %02x, return code %d\n", header[i], return_code) ;
+		printf("Reading %02x, return code %d\n", header[i], return_code) ;
 	}
 
 	uint16_t message_type=0;
@@ -69,28 +95,32 @@ void server_processing( int nSocket ){
 
 	printf("In server handler...\n") ;	
 
+	/* allocate buffer to read data_length number of bytes */
+	buffer = (unsigned char *)malloc(data_length) ;
+	memset(buffer, 0 ,data_length) ;
+
+	// If malloc fails, the datalength could be very big!!
+	if (buffer == NULL){
+		printf("Malloc failed. Might be because of big filename.\n");
+		exit(0) ;
+	}
+	for (unsigned int i=0; i < data_length; i++) {
+		return_code=(int)read(nSocket, &buffer[i], 1);
+		if (return_code == -1){
+			printf("Socket Read error...\n") ;
+			exit(0) ;
+		}
+
+	}
+	printf("Message: %02x %04x %d %04x %s\n", message_type, offset,delay, data_length, buffer) ;
+
 	switch (message_type) {
 		case 0xfe20:
-			/* allocate buffer to read data_length number of bytes */
-			buffer = (unsigned char *)malloc(data_length) ;
-			memset(buffer, 0 ,data_length) ;
-
-			// If malloc fails, the datalength could be very big!!
-			if (buffer == NULL){
-				printf("Malloc failed. Might be because of big filename.\n");
-				exit(0) ;
-			}
-			for (unsigned int i=0; i < data_length; i++) {
-				return_code=(int)read(nSocket, &buffer[i], 1);
-				if (return_code == -1){
-					printf("Socket Read error...\n") ;
-					exit(0) ;
-				}
-
-			}
-			printf("Message: %02x %04x %d %04x %s\n", message_type, offset,delay, data_length, buffer) ;
 			handle_fszReq(nSocket, buffer) ;
 			break;
+		case 0xfe10:
+			handle_addrReq(nSocket, buffer) ;
+			break ;
 	}
 
 }
