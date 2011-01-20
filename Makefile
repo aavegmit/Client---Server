@@ -2,10 +2,10 @@
 all: server client
 
 server: server.o server_operations.o shared.o
-	g++ -g -Wall -o server server.o server_operations.o shared.o -lcrypto
+	g++ -g -Wall -o server server_operations.o shared.o server.o -lcrypto
 
 client: client.o client_operations.o shared.o
-	g++ -g -Wall -o client client.o client_operations.o shared.o -lcrypto
+	g++ -g -Wall -o client client_operations.o shared.o client.o -lcrypto
 
 clean:
 	rm *.o client server

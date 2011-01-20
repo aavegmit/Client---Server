@@ -3,7 +3,7 @@
 #include <string.h>
 #include "shared.h"
 
-extern int optionM ;
+//extern int optionM ;
 
 void display(uint16_t message_type,uint32_t offset, uint8_t delay, uint32_t data_length){
 	if (optionM){

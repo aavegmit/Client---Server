@@ -3,6 +3,7 @@
 #include <string.h>
 #include <openssl/md5.h>
 #include "client_operations.h"
+#include "shared.h"
 
 /*
    void fsz_request(int sockfd, char *fileName, uint8_t delay ){

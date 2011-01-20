@@ -7,6 +7,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "client_operations.h"
+#include "shared.h"
+
+int optionM = 0 ;
 
 void usage(){
 	printf("Usage:\t ./client {adr|fsz|get} [-d delay] [-o offset] [-m] hostname:port string\n") ;

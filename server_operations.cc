@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "server_operations.h"
+#include "shared.h"
 
 /* Handle FSZ REQUEST
  * Use stat() to find the file size

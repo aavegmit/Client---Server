@@ -7,6 +7,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include "server_operations.h"
+#include "shared.h"
+
+int optionM = 0 ;
 
 void usage(){
 	printf("Usage:\t ./server [-t seconds] [-m] port\n") ;

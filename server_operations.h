@@ -9,10 +9,9 @@
 #include <arpa/inet.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include "shared.h"
 
 #define HEADER_SIZE 11
 
 extern void server_processing(int nSocket) ;
 
-int optionM ;
+//int optionM ;
