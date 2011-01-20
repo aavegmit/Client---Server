@@ -117,20 +117,20 @@ void response_handler(int nSocket ){
 					printf("Socket Read error...\n") ;
 					exit(0) ;
 				}
+				++cnt ;
 
 
 				// Use getBuf to update the MD5
-				if (i%512 == 0 && i != 0){
+				if (cnt == 512 ){
 					MD5_Update(&ctx, getBuf, 512) ;
 				// Clear out the buf
 				memset(getBuf,0,512) ;
 				cnt = 0 ;
 				}
 
-				++cnt ;
 
 			}
-			if (!MD5_Update(&ctx, getBuf, data_length%512)) {
+			if (!MD5_Update(&ctx, getBuf, cnt)) {
 				printf("MD5 update failed\n") ;
 				exit(0) ;
 			}

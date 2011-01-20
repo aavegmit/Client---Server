@@ -142,9 +142,9 @@ void handle_getReq(int sockfd, unsigned char *buffer, uint32_t offset, uint8_t d
 						printf("Socket write error..\n");
 						exit(0);
 					}
-					printf("%02x ", bufe[i]) ;
 
 				}
+				printf("ok\n") ;
 
 				memset(bufe,0,512) ;
 				count = 0 ;
@@ -159,7 +159,7 @@ void handle_getReq(int sockfd, unsigned char *buffer, uint32_t offset, uint8_t d
 			printf("Socket write error..\n");
 			exit(0);
 		}
-		printf("%02x ", bufe[i]) ;
+//		printf("%02x ", bufe[i]) ;
 
 	}
 
