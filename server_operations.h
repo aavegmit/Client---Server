@@ -14,3 +14,5 @@
 #define HEADER_SIZE 11
 
 extern void server_processing(int nSocket) ;
+
+int optionM ;

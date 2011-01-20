@@ -18,6 +18,8 @@ int main(int argc, char *argv[])
 	struct sockaddr_in serv_addr;
 	int nSocket=0, portGiven = 0 , portNum = 0;
 
+	optionM = 0 ;
+
 	// Parsing the command line
 	if (argc < 2){
 		usage() ;
@@ -29,6 +31,7 @@ int main(int argc, char *argv[])
 			if (*argv[0] == '-') {
 				if (strcmp(*argv, "-m") == 0) {
 					/* set a global flag */
+					optionM = 1 ;
 					printf("option m selected\n") ;
 				} else if (strcmp(*argv, "-t") == 0) {
 					argc--, argv++; /* move past "-t"*/

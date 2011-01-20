@@ -33,7 +33,7 @@ void response_handler(int nSocket ){
 			printf("Socket Read error...\n") ;
 			exit(0) ;
 		}
-		printf("Reading %02x\n", header[i], return_code) ;
+	//	printf("Reading %02x\n", header[i], return_code) ;
 	}
 
 	uint16_t message_type=0;
@@ -51,10 +51,11 @@ void response_handler(int nSocket ){
 	data_length  = ntohl(data_length);
 
 	printf("In client response handler...\n") ;	
+	display(message_type, offset, delay, data_length) ;
 
 	switch (message_type) {
 		case 0xfe22:
-			printf("No such file found..\n") ;
+			printf("\tFILESIZE request for 'filename' failed.\n") ;
 			break ;
 		case 0xfe21:
 			/* allocate buffer to read data_length number of bytes */
@@ -74,7 +75,7 @@ void response_handler(int nSocket ){
 				}
 
 			}
-			printf("Message: %02x %04x %d %04x %s\n", message_type, offset,delay, data_length, buffer) ;
+			printf("\tFILESIZE = %s\n",  buffer) ;
 			break;
 		case 0xfe11:
 			/* allocate buffer to read data_length number of bytes */
@@ -94,10 +95,13 @@ void response_handler(int nSocket ){
 				}
 
 			}
-			printf("IP ADDRESS: %02x %04x %d %04x %s\n", message_type, offset,delay, data_length, buffer) ;
+			printf("\tADDR = %s\n", buffer) ;
 			break ;
 		case 0xfe12:
-			printf("No such host exists..\n") ;
+			printf("\tADDR request for 'host' failed.\n") ;
+			break ;
+		case 0xfe32:
+			printf("\tGET request for 'file' failed.\n") ;
 			break ;
 		case 0xfe31:
 			char *getBuf = (char *)malloc(512) ;
@@ -138,6 +142,7 @@ void response_handler(int nSocket ){
 				printf("MD_Final failed\n");
 				exit(0) ;
 			}
+			printf("\tFILESIZE = %d, ",data_length) ;
 			printf("MD5: ") ;
 			for (int j=0 ;j < 16; j++)
 				printf("%02x", md[j]) ;

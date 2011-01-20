@@ -23,6 +23,8 @@ int main(int argc, char *argv[]){
 	char *port ;
 	char *hostname, *stringArg ;
 
+	optionM = 0 ;
+
 	// Parse the command line 
 	if (argc < 3){
 		usage() ;
@@ -45,7 +47,8 @@ int main(int argc, char *argv[]){
 			if (*argv[0] == '-') {
 				if (strcmp(*argv, "-m") == 0) {
 					/* set a global flag */
-					printf("option m selected\n") ;
+					optionM = 1 ;
+	//				printf("option m selected\n") ;
 				} 
 				else if (strcmp(*argv, "-d") == 0) {
 					argc--, argv++; /* move past "-d"*/
@@ -58,7 +61,7 @@ int main(int argc, char *argv[]){
 						exit(0) ;
 					}
 					delay = atoi(*argv) ;
-					printf("delay: %d\n", delay) ;
+	//				printf("delay: %d\n", delay) ;
 				}
 				else if (strcmp(*argv, "-o") == 0) {
 					argc--, argv++; /* move past "-o"*/
@@ -71,7 +74,7 @@ int main(int argc, char *argv[]){
 						exit(0) ;
 					}
 					offset = atoi(*argv) ;
-					printf("offset: %d\n", offset) ;
+	//				printf("offset: %d\n", offset) ;
 				}
 				else
 					usage() ;
@@ -101,7 +104,7 @@ int main(int argc, char *argv[]){
 		usage() ;
 
 
-	printf("Command line parsing done\n") ;
+//	printf("Command line parsing done\n") ;
 
 	// Creating the new server
 	nSocket = socket(AF_INET, SOCK_STREAM,0) ;
@@ -121,19 +124,19 @@ int main(int argc, char *argv[]){
 		// Some error
 	}
 	else {
-		printf("Client connected\n") ;
+	//	printf("Client connected\n") ;
 		switch (choice) {
 			case 1:
-				printf("Sending ADDR Request...\n");
+//				printf("Sending ADDR Request...\n");
 				SendAcrossNetwork(nSocket, 0xfe10, stringArg, delay, 0) ;
 				break ;
 			case 2:
-				printf("Sending FSZ Request...\n");
+//				printf("Sending FSZ Request...\n");
 //				fsz_request(nSocket, stringArg, delay) ;
 				SendAcrossNetwork(nSocket, 0xfe20, stringArg, delay, 0) ;
 				break ;
 			case 3:
-				printf("Sending GET Request...\n");
+//				printf("Sending GET Request...\n");
 				SendAcrossNetwork(nSocket, 0xfe30, stringArg, delay, offset) ;
 				break ;
 

@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include "server_operations.h"
 
-
 /* Handle FSZ REQUEST
  * Use stat() to find the file size
  * Create a response packet and reply back to the client
@@ -28,7 +27,7 @@ void handle_fszReq(int nSocket, unsigned char *buffer){
 		responseStr = (char *)malloc(count) ;
 		sprintf(responseStr, "%d", (int)fileStatus.st_size) ;
 		SendAcrossNetwork(nSocket, 0xfe21, responseStr, 0,0) ;
-		printf("File size %s, len %d\n", responseStr, count) ;
+//		printf("File size %s, len %d\n", responseStr, count) ;
 	}
 	free(responseStr) ;
 
@@ -39,12 +38,12 @@ void handle_fszReq(int nSocket, unsigned char *buffer){
  * Create a response packet and reply back to the client
  */
 void handle_addrReq(int nSocket, unsigned char *buffer){
-	printf("In ADDR REQ\n") ;
+//	printf("In ADDR REQ\n") ;
 	struct hostent *hostIP = gethostbyname((char *)buffer) ;
 	char *hostname = new char[15] ;
 	memset(hostname, 0, 15) ;
 	sprintf(hostname, "%s", inet_ntoa(*(struct in_addr*)(hostIP->h_addr_list[0]))) ;
-	printf("Hostip %s\n", hostname) ;
+//	printf("Hostip %s\n", hostname) ;
 
 	if (!strcmp(hostname, "")){
 		SendAcrossNetwork(nSocket,0xfe12, NULL, 0,0) ;
@@ -65,12 +64,13 @@ void handle_addrReq(int nSocket, unsigned char *buffer){
  * Create a response packet and reply back to the client
  */
 void handle_getReq(int sockfd, unsigned char *buffer, uint32_t offset, uint8_t delay){
-	printf("In get request handler\n") ;
+//	printf("In get request handler\n") ;
 	FILE *fp ;
 
 	if ( (fp = fopen((char *)buffer, "rb"))==NULL){
 		printf("File could not be open\n");
-		exit(0) ;
+		SendAcrossNetwork(sockfd,0xfe32, NULL, offset,delay) ;
+		return ;
 	}
 
 	char *bufe = (char *)malloc(512) ;
@@ -116,17 +116,17 @@ void handle_getReq(int sockfd, unsigned char *buffer, uint32_t offset, uint8_t d
 	memcpy(&buf[7], &dlength, 4) ;
 
 	// send the header
-	printf("-----------------------\n") ;
+//	printf("-----------------------\n") ;
 	for (int i=0; i < HEADER_SIZE ; i++) {
 		int return_code=(int)write(sockfd, &buf[i], 1);
 		if (return_code == -1){
 			printf("Socket write error..\n");
 			exit(0);
 		}
-		printf("%02x ", buf[i]) ;
+//		printf("%02x ", buf[i]) ;
 
 	}
-	printf("\n------------*----------\n") ;
+//	printf("\n------------*----------\n") ;
 
 	int bytes_read = 0 ;
 	while(!feof(fp)){
@@ -144,7 +144,7 @@ void handle_getReq(int sockfd, unsigned char *buffer, uint32_t offset, uint8_t d
 					}
 
 				}
-				printf("ok\n") ;
+	//			printf("ok\n") ;
 
 				memset(bufe,0,512) ;
 				count = 0 ;
@@ -182,7 +182,7 @@ void server_processing( int nSocket ){
 			printf("Socket Read error...\n") ;
 			exit(0) ;
 		}
-		printf("Reading %02x, return code %d\n", header[i], return_code) ;
+//		printf("Reading %02x, return code %d\n", header[i], return_code) ;
 	}
 
 	uint16_t message_type=0;
@@ -199,7 +199,7 @@ void server_processing( int nSocket ){
 	offset       = ntohl(offset);
 	data_length  = ntohl(data_length);
 
-	printf("In server handler...\n") ;	
+//	printf("In server handler...\n") ;	
 
 	/* allocate buffer to read data_length number of bytes */
 	buffer = (unsigned char *)malloc(data_length) ;
@@ -218,7 +218,13 @@ void server_processing( int nSocket ){
 		}
 
 	}
-	printf("Message: %02x %04x %d %04x %s\n", message_type, offset,delay, data_length, buffer) ;
+//	printf("Message: %02x %04x %d %04x %s\n", message_type, offset,delay, data_length, buffer) ;
+//	printf("\tReceived %d bytes from\n", data_length) ;
+//	printf("\tMessageType: 0x%04x\n", message_type) ;
+//	printf("\tOffset: 0x%08x\n", offset) ;
+//	printf("\tServerDelay: 0x%02x\n", delay) ;
+//	printf("\tDataLength: 0x%08x\n", data_length) ;
+	display(message_type, offset, delay, data_length) ;
 
 	switch (message_type) {
 		case 0xfe20:
