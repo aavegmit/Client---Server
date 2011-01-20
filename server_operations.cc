@@ -35,7 +35,7 @@ void handle_fszReq(int nSocket, unsigned char *buffer){
 }
 
 /* Handle ADDR REQUEST
- * Use stat() to find the IP address of the host
+ * Use gethostname() to find the IP address of the host
  * Create a response packet and reply back to the client
  */
 void handle_addrReq(int nSocket, unsigned char *buffer){
@@ -60,6 +60,112 @@ void handle_addrReq(int nSocket, unsigned char *buffer){
 }
 
 
+/* Handle GET REQUEST
+ * Use gethostname() to find the IP address of the host
+ * Create a response packet and reply back to the client
+ */
+void handle_getReq(int sockfd, unsigned char *buffer, uint32_t offset, uint8_t delay){
+	printf("In get request handler\n") ;
+	FILE *fp ;
+
+	if ( (fp = fopen((char *)buffer, "rb"))==NULL){
+		printf("File could not be open\n");
+		exit(0) ;
+	}
+
+	char *bufe = (char *)malloc(512) ;
+	memset(bufe,0,512) ;
+
+	// find the data length
+	fseek(fp, 0, SEEK_END) ;
+	uint32_t dlength = 0 ;
+	dlength = ftell(fp) - offset ;
+
+	// move the file pointer at the offset
+	if (fseek(fp, (int)offset, SEEK_SET)){
+		printf("Fseek failed\n");
+		exit(0) ;
+	}
+	int count = 0 ;
+
+	int buf_sz = HEADER_SIZE + dlength ;
+
+	unsigned char *buf=(unsigned char *)malloc(HEADER_SIZE);
+	memset(buf, 0, buf_sz) ;
+
+	if (buf == NULL) { 
+		printf("Malloc failed. Check your str\n") ;
+		exit(0) ;
+	}
+
+	/* Fill out the 11-byte common header */
+
+	/* MessageType is 0xfe20 */
+	uint16_t type = htons(0xfe31) ;
+	memcpy(&buf[0], &type, 2) ;
+
+	/* Offset is 0 */
+	offset = htonl(offset) ;
+	memcpy(&buf[2], &offset, 4) ;
+
+	/* delay */
+	memcpy(&buf[6], &delay, 1) ;
+
+	/* DataLength is strlen("Makefile")=8 */
+	dlength = htonl(dlength) ;
+	memcpy(&buf[7], &dlength, 4) ;
+
+	// send the header
+	printf("-----------------------\n") ;
+	for (int i=0; i < HEADER_SIZE ; i++) {
+		int return_code=(int)write(sockfd, &buf[i], 1);
+		if (return_code == -1){
+			printf("Socket write error..\n");
+			exit(0);
+		}
+		printf("%02x ", buf[i]) ;
+
+	}
+	printf("\n------------*----------\n") ;
+
+	int bytes_read = 0 ;
+	while(!feof(fp)){
+		bytes_read = fread(&bufe[count],1,1,fp ) ;
+
+		if (bytes_read){
+			++count ;
+			// Time to clear out the buffer and write to the socket
+			if (count == 512){
+				for (int i=0; i < 512 ; i++) {
+					int return_code=(int)write(sockfd, &bufe[i], 1);
+					if (return_code == -1){
+						printf("Socket write error..\n");
+						exit(0);
+					}
+					printf("%02x ", bufe[i]) ;
+
+				}
+
+				memset(bufe,0,512) ;
+				count = 0 ;
+			}
+		}
+
+	}
+	// write the rest of the content
+	for (int i=0; i < count ; i++) {
+		int return_code=(int)write(sockfd, &bufe[i], 1);
+		if (return_code == -1){
+			printf("Socket write error..\n");
+			exit(0);
+		}
+		printf("%02x ", bufe[i]) ;
+
+	}
+
+	free(bufe) ;
+
+}
 
 void server_processing( int nSocket ){
 
@@ -120,6 +226,9 @@ void server_processing( int nSocket ){
 			break;
 		case 0xfe10:
 			handle_addrReq(nSocket, buffer) ;
+			break ;
+		case 0xfe30:
+			handle_getReq(nSocket, buffer, offset, delay) ;
 			break ;
 	}
 

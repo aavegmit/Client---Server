@@ -5,7 +5,7 @@ server: server.o server_operations.o shared.o
 	g++ -g -Wall -o server server.o server_operations.o shared.o
 
 client: client.o client_operations.o shared.o
-	g++ -g -Wall -o client client.o client_operations.o shared.o
+	g++ -g -Wall -o client client.o client_operations.o shared.o -lcrypto
 
 clean:
 	rm *.o client server

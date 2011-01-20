@@ -16,8 +16,9 @@ void usage(){
 
 int main(int argc, char *argv[]){
 	struct sockaddr_in serv_addr ;
-	int nSocket = 0, status, choice = 0, fixedArg = 0, offset = 0; 
+	int nSocket = 0, status, choice = 0, fixedArg = 0; 
 	uint8_t delay=0 ;
+	uint32_t offset = 0 ;
 
 	char *port ;
 	char *hostname, *stringArg ;
@@ -133,6 +134,7 @@ int main(int argc, char *argv[]){
 				break ;
 			case 3:
 				printf("Sending GET Request...\n");
+				SendAcrossNetwork(nSocket, 0xfe30, stringArg, delay, offset) ;
 				break ;
 
 		}
