@@ -3,3 +3,9 @@
 Client stops in between, the server is still writing to the socket
 -wall to be included in all the files
 host does not exists condition
+
+------------------------
+
+sigchld - which child has left
+fclose in server_processing
+isdigit

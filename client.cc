@@ -16,6 +16,9 @@ void usage(){
 	exit(0) ;
 }
 
+void server_terminated(int sig){
+	printf("Server terminated\n");
+}
 
 int main(int argc, char *argv[]){
 	struct sockaddr_in serv_addr ;
@@ -27,6 +30,13 @@ int main(int argc, char *argv[]){
 	char *hostname, *stringArg ;
 
 	optionM = 0 ;
+	
+	// Setting the signals
+	struct sigaction sact ;
+	sigemptyset(&sact.sa_mask) ;
+	sact.sa_flags = 0 ;
+	sact.sa_handler = server_terminated ;
+	sigaction(SIGPIPE, &sact, NULL) ;
 
 	// Parse the command line 
 	if (argc < 3){
@@ -59,7 +69,7 @@ int main(int argc, char *argv[]){
 						usage() ;
 					}
 					/* read delay from *argv */
-					if (!atoi(*argv)){
+					if (!atoi(*argv) || atoi(*argv) < 0){
 						printf("Bad delay argument\n") ;
 						exit(0) ;
 					}
@@ -72,7 +82,7 @@ int main(int argc, char *argv[]){
 						usage() ;
 					}
 					/* read offset from *argv */
-					if (!atoi(*argv)){
+					if (!atoi(*argv) || atoi(*argv) < 0 ){
 						printf("Bad offset argument\n") ;
 						exit(0) ;
 					}

@@ -68,7 +68,7 @@ void response_handler(int nSocket ){
 				printf("Malloc failed. Might be because of big filename.\n");
 				exit(0) ;
 			}
-			for (int i=0; i < data_length; i++) {
+			for (unsigned int i=0; i < data_length; i++) {
 				return_code=(int)read(nSocket, &buffer[i], 1);
 				if (return_code == -1){
 					printf("Socket Read error...\n") ;
@@ -77,6 +77,7 @@ void response_handler(int nSocket ){
 
 			}
 			printf("\tFILESIZE = %s\n",  buffer) ;
+			free(buffer) ;
 			break;
 		case 0xfe11:
 			/* allocate buffer to read data_length number of bytes */
@@ -88,7 +89,7 @@ void response_handler(int nSocket ){
 				printf("Malloc failed. Might be because of big filename.\n");
 				exit(0) ;
 			}
-			for (int i=0; i < data_length; i++) {
+			for (unsigned int i=0; i < data_length; i++) {
 				return_code=(int)read(nSocket, &buffer[i], 1);
 				if (return_code == -1){
 					printf("Socket Read error...\n") ;
@@ -97,6 +98,7 @@ void response_handler(int nSocket ){
 
 			}
 			printf("\tADDR = %s\n", buffer) ;
+			free(buffer) ;
 			break ;
 		case 0xfe12:
 			printf("\tADDR request for 'host' failed.\n") ;
@@ -116,7 +118,7 @@ void response_handler(int nSocket ){
 				exit(0) ;
 			}
 			int cnt = 0 ;
-			for (int i=0; i < data_length; i++) {
+			for (unsigned int i=0; i < data_length; i++) {
 				return_code=(int)read(nSocket, &getBuf[cnt], 1);
 				if (return_code == -1){
 					printf("Socket Read error...\n") ;
