@@ -1,6 +1,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <string.h>
+#include <sys/types.h>
 #include <openssl/md5.h>
 #include "client_operations.h"
 #include "shared.h"

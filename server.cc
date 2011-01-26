@@ -11,6 +11,7 @@
 #include "server_operations.h"
 #include "shared.h"
 #include <list>
+#include <unistd.h>
 
 using namespace std ;
 
@@ -42,7 +43,7 @@ void child_terminated(int sig){
 	pid_t pid ;
 	pid = wait(NULL) ;
 	childList.remove(pid) ;
-	printf("Child terminated %d, list size %d\n", pid, (int)childList.size()) ;
+	printf("Child terminated %d, list size %d\n", (int)pid, (int)childList.size()) ;
 }
 
 void client_terminated(int sig){
@@ -51,6 +52,7 @@ void client_terminated(int sig){
 
 int main(int argc, char *argv[])
 {
+	struct addrinfo hints, *servinfo, *p;
 	struct sockaddr_in serv_addr;
 	int nSocket=0, portGiven = 0 , portNum = 0;
 	list<int>::iterator it ;
@@ -72,6 +74,7 @@ int main(int argc, char *argv[])
 	sact_pipe.sa_handler = client_terminated ;
 	sigaction(SIGPIPE, &sact_pipe, NULL) ;
 	(void) signal(SIGCHLD, child_terminated) ;
+	char portBuf[10] ;
 
 	// Parsing the command line
 	if (argc < 2){
@@ -111,6 +114,7 @@ int main(int argc, char *argv[])
 					exit(0);
 				}
 				printf("Port: %s\n", *argv) ;
+				strncpy(portBuf, *argv, sizeof portBuf) ;
 				portNum = atoi(*argv) ;
 				portGiven = 1 ;
 			}
@@ -123,29 +127,101 @@ int main(int argc, char *argv[])
 	alarm(shutTime) ;
 
 	printf("Command line parsing done\n") ;
+	
+	
+	
 
+ 	// Get the IP address of this machine
+	char hostname[15] ;
+        struct hostent *hostIP = gethostbyname("nunki.usc.edu") ;
+        sprintf(hostname, "%s", inet_ntoa(*(struct in_addr*)(hostIP->h_addr_list[0]))) ;
+	int rv ;
+//	sprintf(portBuf, "%d", portNum) ;
+	memset(&hints, 0, sizeof hints) ;
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_flags = AI_PASSIVE; // use my IP
+	// Code until connection establishment has been taken from the Beej's guide	
+	if ((rv = getaddrinfo(NULL, portBuf, &hints, &servinfo)) != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+		exit(1) ;
+	}
+	// loop through all the results and make a socket
+	for(p = servinfo; p != NULL; p = p->ai_next) {
+		if ((nSocket = socket(p->ai_family, p->ai_socktype,
+						p->ai_protocol)) == -1) {
+			perror("talker: socket");
+			continue;
+		}
+		int yes = 1 ;
+		if (setsockopt(nSocket, SOL_SOCKET, SO_REUSEADDR, &yes,
+					sizeof(int)) == -1) {
+			perror("setsockopt");
+			exit(1);
+		}
+		if (bind(nSocket, p->ai_addr, p->ai_addrlen) == -1) {
+			close(nSocket);
+			perror("server: bind");
+			continue;
+		}
+		break;
+	}
+
+	// Return if fail to bind
+	if (p == NULL) {
+		fprintf(stderr, "talker: failed to bind socket\n");
+		exit(1) ;
+	}
+	freeaddrinfo(servinfo); // all done with this structure
+	if (listen(nSocket, 5) == -1) {
+		perror("listen");
+		exit(1);
+	}
+	///////////////////////////////////////////////////////////////////////
+
+/*
 	//creating a socket
-	nSocket = socket(AF_INET, SOCK_STREAM, 0) ;
+	if ( (nSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1 ) {
+		perror("Socket") ;
+		exit(1) ;
+	}
+
+	// code for reusing the port later
+//	 if (setsockopt(nSocket,SOL_SOCKET,SO_REUSEADDR,NULL,sizeof(int)) == -1) {
+//             perror("Setsockopt");
+//             exit(1);
+//         }
+
 
 	// Initialising the structure with 0
 	memset(&serv_addr,0,sizeof(struct sockaddr_in)) ;
 
 	// Filling up the specifics
 	serv_addr.sin_family = AF_INET ;
-	serv_addr.sin_addr.s_addr = htonl(INADDR_ANY) ;
-	serv_addr.sin_port = htons(portNum) ;
+	serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1") ;
+	serv_addr.sin_port = ntohs(portNum) ;
+	memset(&(serv_addr.sin_zero), '\0', 8) ;
+	printf("Port: %d-\n", serv_addr.sin_port) ;
 
 	// Bind the socket 
-	bind(nSocket, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
+	if (bind(nSocket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1) {
+	        perror("Unable to bind") ;
+       		exit(1) ;
+	}       
 
 	// listen on this socket
-	listen(nSocket, 5) ;
+	if (listen(nSocket, 5) == -1){
+		perror("Listen") ;
+		exit(1) ;
+	}
+*/
 
 	for(;;){
 		int cli_len = 0, newsockfd = 0;
 		struct sockaddr_in cli_addr ;
 
 		// Wait for clients to connect
+		printf("Going to accept\n") ;
 		newsockfd = accept(nSocket, (struct sockaddr *)&cli_addr, (socklen_t *)&cli_len ) ;
 		int erroac = errno ;
 
@@ -169,10 +245,13 @@ int main(int argc, char *argv[])
 					}
 				}
 			}
+			perror("accept") ;
 			break ;
 
 		} 
 		else {
+			printf("\n I got a connection from (%s , %d)", inet_ntoa(cli_addr.sin_addr),ntohs(cli_addr.sin_port));
+
 			int pid = fork() ;
 
 			if (pid < 0){
@@ -183,7 +262,7 @@ int main(int argc, char *argv[])
 				printf("Connection with client established\n") ;
 				server_processing( newsockfd ) ;
 				close(newsockfd) ;
-				printf("Client saying bye %d\n", getpid()) ;
+				printf("Client saying bye %d\n", (int)getpid()) ;
 				printf("List size %d\n", (int)myMem.size()) ;
 					for (itc = myMem.begin(); itc != myMem.end(); itc++){
 						free(*itc) ;

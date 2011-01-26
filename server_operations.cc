@@ -111,7 +111,7 @@ void handle_getReq(int sockfd, unsigned char *buffer, uint32_t offset, uint8_t d
 
 
 	// Check if the offset passed is equal or more than the file size
-	if (offset >= ftell(fp)){
+	if (offset >= (unsigned int)ftell(fp)){
 		printf("Ftell failed\n");
 		SendAcrossNetwork(sockfd,0xfe32, NULL, offset,delay) ;
 		//free(bufe) ;

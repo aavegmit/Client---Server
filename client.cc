@@ -22,6 +22,7 @@ void server_terminated(int sig){
 
 int main(int argc, char *argv[]){
 	struct sockaddr_in serv_addr ;
+	struct hostent *host ;
 	int nSocket = 0, status, choice = 0, fixedArg = 0; 
 	uint8_t delay=0 ;
 	uint32_t offset = 0 ;
@@ -116,6 +117,8 @@ int main(int argc, char *argv[]){
 	if ( fixedArg != 2   )
 		usage() ;
 
+	host = gethostbyname(hostname) ;
+
 
 //	printf("Command line parsing done\n") ;
 
@@ -127,14 +130,16 @@ int main(int argc, char *argv[]){
 
 	// Filling up the structure with specifics
 	serv_addr.sin_family = AF_INET ;
-	serv_addr.sin_addr.s_addr = inet_addr(hostname) ;
+//	serv_addr.sin_addr.s_addr = inet_addr(hostname) ;
+	serv_addr.sin_addr = *((struct in_addr *)host->h_addr);
 	serv_addr.sin_port = htons(atoi(port)) ;
 
 	// Connect to the server
 	status = connect(nSocket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) ;
 
 	if (status < 0){
-		// Some error
+		perror("Connect") ;
+		exit(1) ;
 	}
 	else {
 	//	printf("Client connected\n") ;
