@@ -12,6 +12,7 @@
 #include "shared.h"
 #include <list>
 #include <unistd.h>
+#include <ctype.h>
 
 using namespace std ;
 
@@ -53,7 +54,7 @@ void client_terminated(int sig){
 int main(int argc, char *argv[])
 {
 	struct addrinfo hints, *servinfo, *p;
-	struct sockaddr_in serv_addr;
+//	struct sockaddr_in serv_addr;
 	int nSocket=0, portGiven = 0 , portNum = 0;
 	list<int>::iterator it ;
 	list<unsigned char *>::iterator itc ;
@@ -68,12 +69,18 @@ int main(int argc, char *argv[])
 	sact.sa_handler = shutdown ;
 	sigaction(SIGALRM, &sact, NULL) ;
 	sigaction(SIGINT, &sact, NULL) ;
+	
 	struct sigaction sact_pipe ;
+	sact_pipe.sa_handler = child_terminated ;
 	sigemptyset(&sact_pipe.sa_mask) ;
-	sact_pipe.sa_flags = 0 ;
-	sact_pipe.sa_handler = client_terminated ;
-	sigaction(SIGPIPE, &sact_pipe, NULL) ;
-	(void) signal(SIGCHLD, child_terminated) ;
+	sact_pipe.sa_flags = SA_RESTART ;
+	if ( sigaction(SIGPIPE, &sact_pipe, NULL) == -1 ){
+		perror("sigaction") ;
+		exit(1) ;
+	}
+
+
+//	(void) signal(SIGCHLD, child_terminated) ;
 	char portBuf[10] ;
 
 	// Parsing the command line
@@ -90,12 +97,12 @@ int main(int argc, char *argv[])
 					optionM = 1 ;
 					printf("option m selected\n") ;
 				} else if (strcmp(*argv, "-t") == 0) {
-					argc--, argv++; /* move past "-t"*/
-					if (argc <= 0) {
+					++i, argv++; /* move past "-t"*/
+					if (i >= (argc-1)) {
 						usage() ;
 					}
 					/* read offset from *argv */
-					if (!atoi(*argv) || atoi(*argv) <= 0 ){
+					if (!atoi(*argv) || atoi(*argv) < 0 ){
 						printf("Bad Timeout argument\n") ;
 						exit(0) ;
 					}
@@ -109,7 +116,7 @@ int main(int argc, char *argv[])
 			else {
 				if (portGiven)
 					usage() ;
-				if (!atoi(*argv)){
+				if (!isdigit(*argv[0])){
 					printf("Bad Port Number\n");
 					exit(0);
 				}
@@ -179,6 +186,7 @@ int main(int argc, char *argv[])
 	}
 	///////////////////////////////////////////////////////////////////////
 
+
 /*
 	//creating a socket
 	if ( (nSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1 ) {
@@ -221,7 +229,6 @@ int main(int argc, char *argv[])
 		struct sockaddr_in cli_addr ;
 
 		// Wait for clients to connect
-		printf("Going to accept\n") ;
 		newsockfd = accept(nSocket, (struct sockaddr *)&cli_addr, (socklen_t *)&cli_len ) ;
 		int erroac = errno ;
 
@@ -245,12 +252,12 @@ int main(int argc, char *argv[])
 					}
 				}
 			}
-			perror("accept") ;
+//			perror("accept") ;
 			break ;
 
 		} 
 		else {
-			printf("\n I got a connection from (%s , %d)", inet_ntoa(cli_addr.sin_addr),ntohs(cli_addr.sin_port));
+		//	printf("\n I got a connection from (%s , %d)", inet_ntoa(cli_addr.sin_addr),ntohs(cli_addr.sin_port));
 
 			int pid = fork() ;
 
@@ -260,7 +267,7 @@ int main(int argc, char *argv[])
 			else if (pid == 0) {
 				close(nSocket) ;
 				printf("Connection with client established\n") ;
-				server_processing( newsockfd ) ;
+				server_processing( newsockfd, cli_addr ) ;
 				close(newsockfd) ;
 				printf("Client saying bye %d\n", (int)getpid()) ;
 				printf("List size %d\n", (int)myMem.size()) ;

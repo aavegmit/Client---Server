@@ -39,23 +39,23 @@ void handle_fszReq(int nSocket, unsigned char *buffer){
  * Create a response packet and reply back to the client
  */
 void handle_addrReq(int nSocket, unsigned char *buffer){
-	//	printf("In ADDR REQ\n") ;
 	struct hostent *hostIP = gethostbyname((char *)buffer) ;
-	char *hostname = new char[15] ;
-	memset(hostname, 0, 15) ;
-	sprintf(hostname, "%s", inet_ntoa(*(struct in_addr*)(hostIP->h_addr_list[0]))) ;
-	//	printf("Hostip %s\n", hostname) ;
 
-	if (!strcmp(hostname, "")){
+	if (hostIP == NULL){
 		SendAcrossNetwork(nSocket,0xfe12, NULL, 0,0) ;
 	}
 	else{
+		char *hostname = new char[16] ;
+		memset(hostname, '\0', 16) ;
+		sprintf(hostname, "%s", inet_ntoa(*(struct in_addr*)(hostIP->h_addr_list[0]))) ;
+		printf("Hostip %s--\n", hostname) ;
+
 		SendAcrossNetwork(nSocket,0xfe11, hostname, 0,0) ;
+
+
+
+		delete [] hostname ;
 	}
-
-
-
-	//free(hostname) ;
 
 }
 
@@ -243,7 +243,7 @@ void handle_getReq(int sockfd, unsigned char *buffer, uint32_t offset, uint8_t d
 
 }
 
-void server_processing( int nSocket ){
+void server_processing( int nSocket, struct sockaddr_in cli_addr ){
 
 
 	unsigned char header[HEADER_SIZE];
@@ -278,8 +278,8 @@ void server_processing( int nSocket ){
 	//	printf("In server handler...\n") ;	
 
 	/* allocate buffer to read data_length number of bytes */
-	buffer = (unsigned char *)malloc(data_length) ;
-	memset(buffer, 0 ,data_length) ;
+	buffer = (unsigned char *)malloc(data_length + 1) ;
+	memset(buffer, 0 ,data_length + 1) ;
 
 	myMem.push_back(buffer) ;
 
@@ -296,7 +296,8 @@ void server_processing( int nSocket ){
 		}
 
 	}
-	display(message_type, offset, delay, data_length) ;
+	buffer[data_length] = '\0' ;
+	display(message_type, offset, delay, data_length, inet_ntoa(cli_addr.sin_addr)) ;
 
 	sleep(delay) ;
 	switch (message_type) {
@@ -309,6 +310,8 @@ void server_processing( int nSocket ){
 		case 0xfe30:
 			handle_getReq(nSocket, buffer, offset, delay) ;
 			break ;
+		default:
+			SendAcrossNetwork(nSocket, 0xfcfe, NULL ,0,0) ;
 	}
 
 	//free(buffer) ;

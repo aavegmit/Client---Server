@@ -8,4 +8,5 @@ host does not exists condition
 
 sigchld - which child has left
 fclose in server_processing
-isdigit
+received X bytes from IP
+Failed me addr/filename

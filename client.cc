@@ -8,6 +8,7 @@
 #include <arpa/inet.h>
 #include "client_operations.h"
 #include "shared.h"
+#include <ctype.h>
 
 int optionM = 0 ;
 
@@ -70,9 +71,9 @@ int main(int argc, char *argv[]){
 						usage() ;
 					}
 					/* read delay from *argv */
-					if (!atoi(*argv) || atoi(*argv) < 0){
+					if (!isdigit(*argv[0]) || atoi(*argv) < 0){
 						printf("Bad delay argument\n") ;
-						exit(0) ;
+						usage() ;
 					}
 					delay = atoi(*argv) ;
 	//				printf("delay: %d\n", delay) ;
@@ -83,9 +84,9 @@ int main(int argc, char *argv[]){
 						usage() ;
 					}
 					/* read offset from *argv */
-					if (!atoi(*argv) || atoi(*argv) < 0 ){
+					if (!isdigit(*argv[0]) || atoi(*argv) < 0 ){
 						printf("Bad offset argument\n") ;
-						exit(0) ;
+						usage() ;
 					}
 					offset = atoi(*argv) ;
 	//				printf("offset: %d\n", offset) ;
@@ -97,9 +98,18 @@ int main(int argc, char *argv[]){
 				if (fixedArg == 0){
 					++fixedArg ;
 					hostname = strtok(*argv, ":") ;
+					if (hostname ==  NULL){
+						printf("Bad hostname and portnumber\n") ;
+						usage() ;
+					}
 					port = strtok(NULL, ":") ;
+					if (port ==  NULL){
+						printf("Bad hostname and portnumber\n") ;
+						usage() ;
+					}
+					
 					printf("%s %s\n", hostname, port) ;
-					if (!atoi(port)){
+					if (   atoi(port) <= 0 ){
 						printf("Bad port number\n");
 						exit(0) ;
 					}
@@ -159,7 +169,7 @@ int main(int argc, char *argv[]){
 				break ;
 
 		}
-		response_handler(nSocket) ;
+		response_handler(nSocket, stringArg, serv_addr) ;
 	}
 	close(nSocket) ;
 	exit(0) ;

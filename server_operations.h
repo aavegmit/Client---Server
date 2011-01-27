@@ -12,6 +12,6 @@
 
 #define HEADER_SIZE 11
 
-extern void server_processing(int nSocket) ;
+extern void server_processing(int nSocket, struct sockaddr_in cli_addr) ;
 extern int shutTime ;
 //int optionM ;

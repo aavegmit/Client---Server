@@ -19,7 +19,7 @@ using namespace std ;
 void SendAcrossNetwork(int sockfd, uint16_t type, char *str, uint8_t delay, uint32_t offset);
 
 
-void display(uint16_t message_type,uint32_t offset, uint8_t delay, uint32_t data_length) ;
+void display(uint16_t message_type,uint32_t offset, uint8_t delay, uint32_t data_length, char *hostip) ;
 
 extern int optionM ;
 extern int shutDown ;

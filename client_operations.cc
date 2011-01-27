@@ -21,7 +21,7 @@
 /* 
  * Receives response from the server 
  */
-void response_handler(int nSocket ){
+void response_handler(int nSocket, char *reqString, struct sockaddr_in serv_addr ){
 
 	unsigned char header[HEADER_SIZE];
 	unsigned char *buffer ;
@@ -53,16 +53,17 @@ void response_handler(int nSocket ){
 	data_length  = ntohl(data_length);
 
 	printf("In client response handler...\n") ;	
-	display(message_type, offset, delay, data_length) ;
+	display(message_type, offset, delay, data_length, inet_ntoa(serv_addr.sin_addr)) ;
 
 	switch (message_type) {
+		// Case when FSZ request fails
 		case 0xfe22:
-			printf("\tFILESIZE request for 'filename' failed.\n") ;
+			printf("\tFILESIZE request for '%s' failed.\n", reqString) ;
 			break ;
 		case 0xfe21:
 			/* allocate buffer to read data_length number of bytes */
-			buffer = (unsigned char *)malloc(data_length) ;
-			memset(buffer, 0 ,data_length) ;
+			buffer = (unsigned char *)malloc(data_length + 1) ;
+			memset(buffer, 0 ,data_length + 1) ;
 
 			// If malloc fails, the datalength could be very big!!
 			if (buffer == NULL){
@@ -77,13 +78,14 @@ void response_handler(int nSocket ){
 				}
 
 			}
+			buffer[data_length] = '\0' ;
 			printf("\tFILESIZE = %s\n",  buffer) ;
 			free(buffer) ;
 			break;
 		case 0xfe11:
 			/* allocate buffer to read data_length number of bytes */
-			buffer = (unsigned char *)malloc(data_length) ;
-			memset(buffer, 0 ,data_length) ;
+			buffer = (unsigned char *)malloc(data_length + 1) ;
+			memset(buffer, 0 ,data_length + 1) ;
 
 			// If malloc fails, the datalength could be very big!!
 			if (buffer == NULL){
@@ -98,14 +100,18 @@ void response_handler(int nSocket ){
 				}
 
 			}
+			buffer[data_length] = '\0' ;
 			printf("\tADDR = %s\n", buffer) ;
 			free(buffer) ;
 			break ;
 		case 0xfe12:
-			printf("\tADDR request for 'host' failed.\n") ;
+			printf("\tADDR request for '%s' failed.\n", reqString) ;
 			break ;
 		case 0xfe32:
-			printf("\tGET request for 'file' failed.\n") ;
+			printf("\tGET request for '%s' failed.\n", reqString) ;
+			break ;
+		case 0xfcfe:
+			printf("ALL-FAILURE response received\n") ;
 			break ;
 		case 0xfe31:
 			char *getBuf = (char *)malloc(512) ;

@@ -5,9 +5,9 @@
 
 int shutDown = 0 ;
 
-void display(uint16_t message_type,uint32_t offset, uint8_t delay, uint32_t data_length){
+void display(uint16_t message_type,uint32_t offset, uint8_t delay, uint32_t data_length, char *hostip){
 	if (optionM){
-		printf("\tReceived %d bytes from\n", data_length + HEADER_SIZE) ;
+		printf("\tReceived %d bytes from %s\n", data_length + HEADER_SIZE, hostip) ;
 		printf("\tMessageType: 0x%04x\n", message_type) ;
 		printf("\tOffset: 0x%08x\n", offset) ;
 		printf("\tServerDelay: 0x%02x\n", delay) ;
@@ -61,14 +61,16 @@ void SendAcrossNetwork(int sockfd, uint16_t type, char *str, uint8_t delay, uint
 	for (int i=0; i < buf_sz ; i++) {
 		if (shutDown){
 			printf("@child: Time to move out...\n") ;
+			free(buf) ;
 			return ;
 		}
 		int return_code=(int)write(sockfd, &buf[i], 1);
 		if (return_code == -1){
 			printf("Socket write error..\n");
+			free(buf) ;
 			exit(0);
 		}
-		//		printf("Writing %02x\n", buf[i]) ;
+//				printf("Writing %c\n", buf[i]) ;
 
 	}
 	//	printf("------------*----------\n") ;
