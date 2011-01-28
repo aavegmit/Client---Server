@@ -22,6 +22,7 @@ int shut_alarm = 0 ;
 list<int> childList ;
 list<unsigned char *> myMem ;
 list<FILE *> myFile ;
+char *ipspouse ;
 
 void usage(){
 	printf("Usage:\t ./server [-t seconds] [-m] port\n") ;
@@ -31,11 +32,11 @@ void usage(){
 void shutdown(int sig){
 
 	if (sig == SIGALRM){
-		printf("Server shutting down. Better Cleanup %d\n", sig) ;
+		printf("Server alarm went off\n") ;
 		shut_alarm = 1 ;
 	}
 	else if (sig == SIGINT){
-		printf("CTRL+C raised\n") ;
+//		printf("Server: terminated normally\n") ;
 		shutDown = 1 ;
 	}
 }
@@ -44,7 +45,7 @@ void child_terminated(int sig){
 	pid_t pid ;
 	pid = wait(NULL) ;
 	childList.remove(pid) ;
-	printf("Child terminated %d, list size %d\n", (int)pid, (int)childList.size()) ;
+//	printf("Child terminated %d, list size %d\n", (int)pid, (int)childList.size()) ;
 }
 
 void client_terminated(int sig){
@@ -95,7 +96,7 @@ int main(int argc, char *argv[])
 				if (strcmp(*argv, "-m") == 0) {
 					/* set a global flag */
 					optionM = 1 ;
-					printf("option m selected\n") ;
+//					printf("option m selected\n") ;
 				} else if (strcmp(*argv, "-t") == 0) {
 					++i, argv++; /* move past "-t"*/
 					if (i >= (argc-1)) {
@@ -108,7 +109,7 @@ int main(int argc, char *argv[])
 					}
 					shutTime = atoi(*argv) ;
 
-					printf("Seconds: %d\n", shutTime) ;
+//					printf("Seconds: %d\n", shutTime) ;
 				}
 				else
 					usage() ;
@@ -120,7 +121,7 @@ int main(int argc, char *argv[])
 					printf("Bad Port Number\n");
 					exit(0);
 				}
-				printf("Port: %s\n", *argv) ;
+//				printf("Port: %s\n", *argv) ;
 				strncpy(portBuf, *argv, sizeof portBuf) ;
 				portNum = atoi(*argv) ;
 				portGiven = 1 ;
@@ -133,19 +134,20 @@ int main(int argc, char *argv[])
 
 	alarm(shutTime) ;
 
-	printf("Command line parsing done\n") ;
-	
+//	printf("Command line parsing done\n") ;
 	
 	
 
+//////////////////// Code from Beej's guide ///////////////////////////////////////	
+
  	// Get the IP address of this machine
-	char hostname[15] ;
-        struct hostent *hostIP = gethostbyname("nunki.usc.edu") ;
-        sprintf(hostname, "%s", inet_ntoa(*(struct in_addr*)(hostIP->h_addr_list[0]))) ;
+//	char hostname[15] ;
+//        struct hostent *hostIP = gethostbyname("nunki.usc.edu") ;
+//        sprintf(hostname, "%s", inet_ntoa(*(struct in_addr*)(hostIP->h_addr_list[0]))) ;
 	int rv ;
 //	sprintf(portBuf, "%d", portNum) ;
 	memset(&hints, 0, sizeof hints) ;
-	hints.ai_family = AF_UNSPEC;
+	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_flags = AI_PASSIVE; // use my IP
 	// Code until connection establishment has been taken from the Beej's guide	
@@ -157,7 +159,7 @@ int main(int argc, char *argv[])
 	for(p = servinfo; p != NULL; p = p->ai_next) {
 		if ((nSocket = socket(p->ai_family, p->ai_socktype,
 						p->ai_protocol)) == -1) {
-			perror("talker: socket");
+			perror("server: socket");
 			continue;
 		}
 		int yes = 1 ;
@@ -176,7 +178,7 @@ int main(int argc, char *argv[])
 
 	// Return if fail to bind
 	if (p == NULL) {
-		fprintf(stderr, "talker: failed to bind socket\n");
+		fprintf(stderr, "server: failed to bind socket\n");
 		exit(1) ;
 	}
 	freeaddrinfo(servinfo); // all done with this structure
@@ -236,7 +238,7 @@ int main(int argc, char *argv[])
 		if (newsockfd < 0){
 			if (erroac == EINTR){
 				if (shut_alarm){
-					printf("Time to shut down gracefully\n") ;
+//					printf("Time to shut down gracefully\n") ;
 					// Signal all the child to move out of read
 					//	wait(NULL) ;
 					
@@ -246,7 +248,7 @@ int main(int argc, char *argv[])
 					}
 				}
 				else if (shutDown){
-					printf("CTRL + C hit\n") ;
+//					printf("CTRL + C hit\n") ;
 					for (it = childList.begin(); it != childList.end(); it++){
 						kill(*it, SIGINT) ;
 					}
@@ -265,18 +267,25 @@ int main(int argc, char *argv[])
 				/* error */
 			}
 			else if (pid == 0) {
+				ipspouse = (char *)malloc(16) ;
+				memset(ipspouse,0, 16) ;
+				get_ip_addr(newsockfd) ;
 				close(nSocket) ;
-				printf("Connection with client established\n") ;
+//				printf("Connection with client established\n") ;
 				server_processing( newsockfd, cli_addr ) ;
 				close(newsockfd) ;
-				printf("Client saying bye %d\n", (int)getpid()) ;
-				printf("List size %d\n", (int)myMem.size()) ;
+//				printf("Client saying bye %d\n", (int)getpid()) ;
+//				printf("List size %d\n", (int)myMem.size()) ;
+
+				// Free up the memory
 					for (itc = myMem.begin(); itc != myMem.end(); itc++){
 						free(*itc) ;
 					}
+					// Close all the files opened
 					for (itf = myFile.begin(); itf != myFile.end(); itf++){
 						fclose(*itf) ;
 					}
+					free(ipspouse) ;
 				exit(0) ;
 			}
 			childList.push_back(pid) ;
@@ -292,7 +301,7 @@ int main(int argc, char *argv[])
 	while(!(wait(&waitV) == -1) ) ;
 //	while(!childList.empty())
 //		sleep(5) ;
-	printf("Server final good bye\n") ;
+	printf("Server terminating normally\n") ;
 	close(nSocket) ;
 	exit(0) ;
 

@@ -1,0 +1,53 @@
+Name: Aaveg Mittal 
+Date: 1/28/2011
+Course: CSCI 551
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+I have successfully simulated a TCP connection between a multithreaded server and a client and established communication between them by making use of adr/fsz/get commands.
+
+-----------------------------------------------------------------------------------------------------------------------------
+FILES:
+
+My Warmup Project 1 has a total of ten files, namely:
+-client.cc
+-server.cc
+-client_operations.cc
+-client_operations.h
+-server_operations.cc
+-server_operations.h
+-shared.cc
+-shared.h
+-Makefile
+-README
+
+The client.cc file has the basic TCP connection along with the commandline parsing, and it also sends the request to the server 
+
+The client_operations.cc source file handles the response from the server, for eg in case of response of a get request it computes the MD5 sum.
+
+The server.cc has the server side code along with the commandline parsing function while the child process has been included in a separate file , server_operations.cc 
+
+The shared.cc file contains the common code to be used by server and client such as display of messages and sending bytes across the network.
+
+To make the execuatble the graders need to run " make " to create the executables.
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+DESIGN DECISIONS :
+
+
+1) I am creating child processes when ever a client connects to the server and the connection is accepted.
+
+2) At the time of exiting the code, the main() signals all the child processes and sets a global flag.
+
+3) To prevent busy waiting of the client and server in their respective receive function code , i have used select() to wake them up. So i have taken a countdown time for the receiver to be equal to 5 seconds with the help of select(). This ensures that if no data is received for an interval of 5 seconds the receiver times out. An appropriate message is then sent from the client to server or vice versa.
+
+4) As regards to handling a client which sends 1 billion bytes of data is concerned, it will process the request but it'll also keep checking the global flag to see if its time to exit. So as soon as the timeout expires, the loop will be exited. The filesize request will be processed but the adr request might return an error  because of gethostbyname(). 
+
+-----------------------------------------------------------------------------------------------------------------------------
+
+REFERENCE:
+
+1) I have used bits of code from Beej's socket programming guide. I have explicitly indicated this by placing comments at appropriate spots in the code files. 
+
+2) I have used the Makefile from me CS531 course.

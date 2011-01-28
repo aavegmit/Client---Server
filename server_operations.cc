@@ -48,7 +48,7 @@ void handle_addrReq(int nSocket, unsigned char *buffer){
 		char *hostname = new char[16] ;
 		memset(hostname, '\0', 16) ;
 		sprintf(hostname, "%s", inet_ntoa(*(struct in_addr*)(hostIP->h_addr_list[0]))) ;
-		printf("Hostip %s--\n", hostname) ;
+		//		printf("Hostip %s--\n", hostname) ;
 
 		SendAcrossNetwork(nSocket,0xfe11, hostname, 0,0) ;
 
@@ -76,6 +76,7 @@ void handle_getReq(int sockfd, unsigned char *buffer, uint32_t offset, uint8_t d
 	}
 	myFile.push_back(fp) ;
 
+	// use stat() on the file
 	struct stat fileStatus ;
 	int ret_code = stat((char *)buffer, &fileStatus) ;
 
@@ -112,8 +113,8 @@ void handle_getReq(int sockfd, unsigned char *buffer, uint32_t offset, uint8_t d
 
 	// Check if the offset passed is equal or more than the file size
 	if (offset >= (unsigned int)ftell(fp)){
-		printf("Ftell failed\n");
-		SendAcrossNetwork(sockfd,0xfe32, NULL, offset,delay) ;
+		//		printf("Ftell failed\n");
+		SendAcrossNetwork(sockfd,0xfe31, NULL, offset,delay) ;
 		//free(bufe) ;
 		return ;
 	}
@@ -163,7 +164,7 @@ void handle_getReq(int sockfd, unsigned char *buffer, uint32_t offset, uint8_t d
 	//	printf("-----------------------\n") ;
 	for (int i=0; i < HEADER_SIZE ; i++) {
 		if(shutDown){
-			printf("@child: Time to move out...\n") ;
+			//			printf("@child: Time to move out...\n") ;
 			//free(bufe) ;
 			//free(buf) ;
 			return ;
@@ -190,7 +191,7 @@ void handle_getReq(int sockfd, unsigned char *buffer, uint32_t offset, uint8_t d
 			if (count == 512){
 				for (int i=0; i < 512 ; i++) {
 					if(shutDown){
-						printf("@child: Time to move out...\n") ;
+						//						printf("@child: Time to move out...\n") ;
 						//free(bufe) ;
 						//free(buf) ;
 						return ;
@@ -210,7 +211,7 @@ void handle_getReq(int sockfd, unsigned char *buffer, uint32_t offset, uint8_t d
 			}
 		}
 		else if (!feof(fp)){
-			printf("error %d %d\n", errno, bytes_read) ;
+			//			printf("error %d %d\n", errno, bytes_read) ;
 			printf("Fread failed\n");
 			//			SendAcrossNetwork(sockfd,0xfe32, NULL, offset,delay) ;
 			//free(bufe) ;
@@ -222,7 +223,7 @@ void handle_getReq(int sockfd, unsigned char *buffer, uint32_t offset, uint8_t d
 	// write the rest of the content
 	for (int i=0; i < count ; i++) {
 		if(shutDown){
-			printf("@child: Time to move out...\n") ;
+			//			printf("@child: Time to move out...\n") ;
 			//free(bufe) ;
 			//free(buf) ;
 			return ;
@@ -252,30 +253,84 @@ void server_processing( int nSocket, struct sockaddr_in cli_addr ){
 
 	memset(header, 0, HEADER_SIZE) ;
 
-	for (int i=0; i < HEADER_SIZE; i++) {
-		return_code=(int)read(nSocket, &header[i], 1);
-		if (return_code == -1){
-			printf("Socket Read error...\n") ;
-			exit(0) ;
-		}
-		//		printf("Reading %02x, return code %d\n", header[i], return_code) ;
-	}
+	// Declare variables for timeout
+	int readsocks = 0;
+	fd_set socks ;
+	struct timeval timeout ;
+	timeout.tv_sec = 5 ;
+	timeout.tv_usec = 0 ;
+
+	// Clear out the fd
+	FD_ZERO(&socks) ;
+	// Add current socket descriptor in this list
+	FD_SET(nSocket, &socks) ;
 
 	uint16_t message_type=0;
 	uint32_t offset=0;
 	uint32_t data_length=0;
 	uint8_t delay=0 ;
 
-	memcpy(&message_type, header, 2);
-	memcpy(&offset,       header+2, 4);
-	memcpy(&delay,       header+6, 1);
-	memcpy(&data_length,  header+7, 4);
+
+	for (int i=0; i < HEADER_SIZE; i++) {
+		readsocks = select(nSocket + 1, &socks, (fd_set *)0, (fd_set *)0, &timeout) ;
+		if (readsocks < 0){
+			perror("select") ;
+			exit(1) ;
+		}
+		else if(readsocks == 0){
+			printf("Timeout expired..\n") ;
+			display(message_type, offset, delay, data_length, inet_ntoa(cli_addr.sin_addr), i) ;
+			SendAcrossNetwork(nSocket, 0xfcfe, NULL ,0,0) ;
+			return ;
+		}
+		else{
+			return_code=(int)read(nSocket, &header[i], 1);
+			if (return_code == 0){
+				printf("Socket Read error...\n") ;
+				display(message_type, offset, delay, data_length, inet_ntoa(cli_addr.sin_addr), i) ;
+				SendAcrossNetwork(nSocket, 0xfcfe, NULL ,0,0) ;
+				return ;
+			}
+			if (i==1)
+				memcpy(&message_type, header, 2);
+			if (i==5)
+				memcpy(&offset,       header+2, 4);
+			if (i==6)
+				memcpy(&delay,       header+6, 1);
+			if (i==10)
+				memcpy(&data_length,  header+7, 4);
+
+		}	//		printf("Reading %02x, return code %d\n", header[i], return_code) ;
+
+	}
+
+
+	//	memcpy(&message_type, header, 2);
+	//	memcpy(&offset,       header+2, 4);
+	//	memcpy(&delay,       header+6, 1);
+	//	memcpy(&data_length,  header+7, 4);
 
 	message_type = ntohs(message_type);
 	offset       = ntohl(offset);
 	data_length  = ntohl(data_length);
 
 	//	printf("In server handler...\n") ;	
+
+	char ch ;
+	if (data_length == 0 || data_length > 512  ){
+		for (unsigned int i=0; i < data_length; i++) {
+			return_code=(int)read(nSocket, &ch, 1);
+			if (return_code == -1){
+				printf("Socket Read error...\n") ;
+				exit(0) ;
+			}
+
+		}
+		display(message_type, offset, delay, 0, inet_ntoa(cli_addr.sin_addr), HEADER_SIZE) ;
+		printf("\tInvalid Request\n");
+		SendAcrossNetwork(nSocket, 0xfcfe, NULL ,0,0) ;
+		return ;
+	}
 
 	/* allocate buffer to read data_length number of bytes */
 	buffer = (unsigned char *)malloc(data_length + 1) ;
@@ -297,7 +352,7 @@ void server_processing( int nSocket, struct sockaddr_in cli_addr ){
 
 	}
 	buffer[data_length] = '\0' ;
-	display(message_type, offset, delay, data_length, inet_ntoa(cli_addr.sin_addr)) ;
+	display(message_type, offset, delay, data_length, inet_ntoa(cli_addr.sin_addr), HEADER_SIZE) ;
 
 	sleep(delay) ;
 	switch (message_type) {

@@ -19,7 +19,7 @@ client: $(OBJ1)
 	$(CC) $(CFLAGS) -o client $(OBJ1) $(INC)  $(LIBS) 
 
 clean:
-	rm *.o client server
+	rm -rf *.o client server
 
 server.o: server.cc
 	$(CC) $(CFLAGS) -c server.cc $(INC)

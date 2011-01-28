@@ -29,19 +29,54 @@ void response_handler(int nSocket, char *reqString, struct sockaddr_in serv_addr
 
 	memset(header, 0, HEADER_SIZE) ;
 
-	for (int i=0; i < HEADER_SIZE; i++) {
-		return_code=(int)read(nSocket, &header[i], 1);
-		if (return_code == -1){
-			printf("Socket Read error...\n") ;
-			exit(0) ;
-		}
-	//	printf("Reading %02x\n", header[i], return_code) ;
-	}
+	// Declare variables for timeout
+	int readsocks = 0;
+	fd_set socks ;
+	struct timeval timeout ;
+	timeout.tv_sec = 50 ;
+	timeout.tv_usec = 0 ;
+
+	// Clear out the fd
+	FD_ZERO(&socks) ;
+	// Add current socket descriptor in this list
+	FD_SET(nSocket, &socks) ;
 
 	uint16_t message_type=0;
 	uint32_t offset=0;
 	uint32_t data_length=0;
 	uint8_t delay=0 ;
+
+	for (int i=0; i < HEADER_SIZE; i++) {
+		readsocks = select(nSocket + 1, &socks, (fd_set *)0, (fd_set *)0, &timeout) ;
+		if (readsocks < 0){
+			perror("select") ;
+			return ;
+		}
+		else if(readsocks == 0){
+			printf("Timeout expired..\n") ;
+			display(message_type, offset, delay, data_length, inet_ntoa(serv_addr.sin_addr), i) ;
+			return ;
+		}
+		else{
+			return_code=(int)read(nSocket, &header[i], 1);
+			if (return_code == 0){
+				display(message_type, offset, delay, data_length, inet_ntoa(serv_addr.sin_addr), i) ;
+				printf("Socket Read error...\n") ;
+				return ;
+			}
+			if (i==1)
+				memcpy(&message_type, header, 2);
+			if (i==5)
+				memcpy(&offset,       header+2, 4);
+			if (i==6)
+				memcpy(&delay,       header+6, 1);
+			if (i==10)
+				memcpy(&data_length,  header+7, 4);
+
+		}	//		printf("Reading %02x, return code %d\n", header[i], return_code) ;
+
+	}
+
 
 	memcpy(&message_type, header, 2);
 	memcpy(&offset,       header+2, 4);
@@ -52,8 +87,8 @@ void response_handler(int nSocket, char *reqString, struct sockaddr_in serv_addr
 	offset       = ntohl(offset);
 	data_length  = ntohl(data_length);
 
-	printf("In client response handler...\n") ;	
-	display(message_type, offset, delay, data_length, inet_ntoa(serv_addr.sin_addr)) ;
+	//	printf("In client response handler...\n") ;	
+	display(message_type, offset, delay, data_length, inet_ntoa(serv_addr.sin_addr), HEADER_SIZE) ;
 
 	switch (message_type) {
 		// Case when FSZ request fails
@@ -61,6 +96,19 @@ void response_handler(int nSocket, char *reqString, struct sockaddr_in serv_addr
 			printf("\tFILESIZE request for '%s' failed.\n", reqString) ;
 			break ;
 		case 0xfe21:
+			if (data_length == 0 || data_length > 512){
+				printf("\tInvalid server response\n");
+				char ch ;
+				for (unsigned int i=0; i < data_length; i++) {
+					return_code=(int)read(nSocket, &ch, 1);
+					if (return_code == 0){
+						printf("Socket Read error...\n") ;
+						exit(0) ;
+					}
+
+				}
+				return ;
+			}
 			/* allocate buffer to read data_length number of bytes */
 			buffer = (unsigned char *)malloc(data_length + 1) ;
 			memset(buffer, 0 ,data_length + 1) ;
@@ -68,13 +116,13 @@ void response_handler(int nSocket, char *reqString, struct sockaddr_in serv_addr
 			// If malloc fails, the datalength could be very big!!
 			if (buffer == NULL){
 				printf("Malloc failed. Might be because of big filename.\n");
-				exit(0) ;
+				return ;
 			}
 			for (unsigned int i=0; i < data_length; i++) {
 				return_code=(int)read(nSocket, &buffer[i], 1);
-				if (return_code == -1){
+				if (return_code == 0){
 					printf("Socket Read error...\n") ;
-					exit(0) ;
+					return ;
 				}
 
 			}
@@ -83,20 +131,33 @@ void response_handler(int nSocket, char *reqString, struct sockaddr_in serv_addr
 			free(buffer) ;
 			break;
 		case 0xfe11:
+			if (data_length == 0 || data_length > 512){
+				char ch ;
+				for (unsigned int i=0; i < data_length; i++) {
+					return_code=(int)read(nSocket, &ch, 1);
+					if (return_code == 0){
+						printf("Socket Read error...\n") ;
+						return ;
+					}
+
+				}
+				printf("\tInvalid server response\n");
+				return ;
+			}
 			/* allocate buffer to read data_length number of bytes */
 			buffer = (unsigned char *)malloc(data_length + 1) ;
 			memset(buffer, 0 ,data_length + 1) ;
 
 			// If malloc fails, the datalength could be very big!!
 			if (buffer == NULL){
-				printf("Malloc failed. Might be because of big filename.\n");
-				exit(0) ;
+				printf("Malloc failed. Might be because of IP address information.\n");
+				return ;
 			}
 			for (unsigned int i=0; i < data_length; i++) {
 				return_code=(int)read(nSocket, &buffer[i], 1);
-				if (return_code == -1){
+				if (return_code == 0){
 					printf("Socket Read error...\n") ;
-					exit(0) ;
+					return ;
 				}
 
 			}
@@ -122,14 +183,14 @@ void response_handler(int nSocket, char *reqString, struct sockaddr_in serv_addr
 			memset(md,0,16) ;
 			if (!MD5_Init(&ctx)){
 				printf("MD5 Init failed\n") ;
-				exit(0) ;
+				return ;
 			}
 			int cnt = 0 ;
 			for (unsigned int i=0; i < data_length; i++) {
 				return_code=(int)read(nSocket, &getBuf[cnt], 1);
-				if (return_code == -1){
+				if (return_code == 0){
 					printf("Socket Read error...\n") ;
-					exit(0) ;
+					return ;
 				}
 				++cnt ;
 
@@ -137,25 +198,27 @@ void response_handler(int nSocket, char *reqString, struct sockaddr_in serv_addr
 				// Use getBuf to update the MD5
 				if (cnt == 512 ){
 					MD5_Update(&ctx, getBuf, 512) ;
-				// Clear out the buf
-				memset(getBuf,0,512) ;
-				cnt = 0 ;
+					// Clear out the buf
+					memset(getBuf,0,512) ;
+					cnt = 0 ;
 				}
 
 
 			}
 			if (!MD5_Update(&ctx, getBuf, cnt)) {
 				printf("MD5 update failed\n") ;
-				exit(0) ;
+				return ;
 			}
 			if (!MD5_Final(md, &ctx)){
 				printf("MD_Final failed\n");
-				exit(0) ;
+				return ;
 			}
-			printf("\tFILESIZE = %d, ",data_length) ;
-			printf("MD5: ") ;
-			for (int j=0 ;j < 16; j++)
-				printf("%02x", md[j]) ;
+			printf("\tFILESIZE = %d",data_length) ;
+			if (data_length > 0){
+				printf(", MD5: ") ;
+				for (int j=0 ;j < 16; j++)
+					printf("%02x", md[j]) ;
+			}
 			printf("\n") ;
 
 			free(getBuf) ;

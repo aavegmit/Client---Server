@@ -5,9 +5,26 @@
 
 int shutDown = 0 ;
 
-void display(uint16_t message_type,uint32_t offset, uint8_t delay, uint32_t data_length, char *hostip){
+void get_ip_addr(int s)
+{
+	socklen_t len;
+	struct sockaddr_storage addr;
+
+	len = sizeof addr;
+	getpeername(s, (struct sockaddr*)&addr, &len);
+	if (addr.ss_family == AF_INET) 
+	{
+		struct sockaddr_in *s = (struct sockaddr_in *)&addr;
+		inet_ntop(AF_INET, &s->sin_addr, ipspouse, 16);
+		ipspouse[15] = '\0' ;
+	}
+}
+
+
+
+void display(uint16_t message_type,uint32_t offset, uint8_t delay, uint32_t data_length, char *hostip, int hz){
 	if (optionM){
-		printf("\tReceived %d bytes from %s\n", data_length + HEADER_SIZE, hostip) ;
+		printf("\n\tReceived %d bytes from %s\n", data_length + hz, ipspouse) ;
 		printf("\tMessageType: 0x%04x\n", message_type) ;
 		printf("\tOffset: 0x%08x\n", offset) ;
 		printf("\tServerDelay: 0x%02x\n", delay) ;

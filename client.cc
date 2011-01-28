@@ -11,6 +11,7 @@
 #include <ctype.h>
 
 int optionM = 0 ;
+char *ipspouse ;
 
 void usage(){
 	printf("Usage:\t ./client {adr|fsz|get} [-d delay] [-o offset] [-m] hostname:port string\n") ;
@@ -108,7 +109,7 @@ int main(int argc, char *argv[]){
 						usage() ;
 					}
 					
-					printf("%s %s\n", hostname, port) ;
+			//		printf("%s %s\n", hostname, port) ;
 					if (   atoi(port) <= 0 ){
 						printf("Bad port number\n");
 						exit(0) ;
@@ -152,6 +153,8 @@ int main(int argc, char *argv[]){
 		exit(1) ;
 	}
 	else {
+		ipspouse = (char *)malloc(16) ;
+		get_ip_addr(nSocket) ;
 	//	printf("Client connected\n") ;
 		switch (choice) {
 			case 1:
@@ -171,6 +174,7 @@ int main(int argc, char *argv[]){
 		}
 		response_handler(nSocket, stringArg, serv_addr) ;
 	}
+	free(ipspouse) ;
 	close(nSocket) ;
 	exit(0) ;
 
